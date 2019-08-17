@@ -57,7 +57,7 @@ class JsonHandler
 		$count = count($this -> arrayData[$this -> GetMainKey()]);
 		$this -> arrayData['length'] = $count;
 	}
-	public function CreateFromArray($array, $key = '')
+	public function CreateFromArray($array, $key = 'result')
     {
         $result = $array;
 		$this -> SetMainKey($key);
