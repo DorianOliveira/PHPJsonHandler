@@ -120,8 +120,17 @@ class JsonHandler
 		$object_vars = get_object_vars($obj);
 		$reflection = new ReflectionClass($obj);
 		$props = $reflection -> getProperties();
-		
+		$parentClass = $reflection -> getParentClass();
+
+		while($parentClass != null)
+		{
+			$props = array_merge($props, $parentClass -> getProperties());
+			$parentClass = $parentClass -> getParentClass();
+		}
+
+
 		$array_json = array();
+		
 		if($include_object_vars)
 		{
 			foreach($object_vars as $variable_key => $variable_value)
@@ -132,6 +141,9 @@ class JsonHandler
 		
 	    foreach($props as $prop)
 	    {   
+
+	    	
+
 	    	$valid_property = true;
 	    	if(is_array($fields) && count($fields) > 0)
 	    	{
