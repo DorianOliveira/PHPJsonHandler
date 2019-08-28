@@ -70,7 +70,7 @@ class JsonHandler
 	public function CreateFromObject($obj, $fields=array(), $key = 'result', $optionsMethods = array(), $includeObjectVars = false)
 	{
 		$this -> SetMainKey($key);
-		$array_json = JsonHandler :: CreateArrayProperties($obj, $fields, $optionsMethods, $includeObjectVars);
+		$array_json = $this -> CreateArrayProperties($obj, $fields, $optionsMethods, $includeObjectVars);
 		
 		if($this -> GetMainKey() != '')
 			$array_data = array($this -> GetMainKey()  => $array_json);
@@ -97,22 +97,38 @@ class JsonHandler
 		$listJson = array();
 		$counter_item = 1;
 		$this -> SetMainKey($key);
+
+
 		foreach($array as $item_key => $item_value)
 		{
+
 			if(is_array($item_value) && !empty($item_value))
 			{
 				$listJson[$item_key] = $this -> CreateArrayObject($item_value, $fields, $key, $optionsMethods, $includeObjectVars);
 			}
 			else if(gettype($item_value) == 'object')
 			{
-				$listJson[$item_key] = JsonHandler :: CreateArrayProperties($item_value, $fields, $optionsMethods, $includeObjectVars);
+				$listJson[$item_key] = $this -> CreateArrayProperties($item_value, $fields, $optionsMethods, $includeObjectVars);
 			}
 			else {
+				
 				$listJson[$item_key] = $item_value;
 			}
 				
 		}
 		return $listJson;
+	}
+
+	private function ValidFields($fields, $propName)
+	{
+		if(is_array($fields) && count($fields) > 0)
+    	{
+    		if(!in_array($propName, $fields))
+    			return false;
+		}
+
+		return true;
+			
 	}
 	private function CreateArrayProperties($obj, $fields = array(), $optionsMethods = array(), $include_object_vars = false)
 	{
@@ -135,47 +151,52 @@ class JsonHandler
 		{
 			foreach($object_vars as $variable_key => $variable_value)
 			{
-				$array_json[$variable_key] = $variable_value;
+				if($this -> ValidFields($fields, $variable_key))
+					$array_json[$variable_key] = $variable_value;
 			}
 		}
 		
 	    foreach($props as $prop)
 	    {   
 
-	    	
-
-	    	$valid_property = true;
-	    	if(is_array($fields) && count($fields) > 0)
-	    	{
-	    		if(!in_array($prop -> getName(), $fields))
-	    			$valid_property = false;
-			}
+	    	$valid_property = $this -> ValidFields($fields, $prop -> getName());
 			
 	    	if($valid_property)
 	    	{
 				$prop -> setAccessible(true);
-				$type = gettype($prop -> getValue($obj));
+				$prop_value = $prop -> getValue($obj);
+				$type = gettype($prop_value);
 				
 				$value_object = null;
+
 				if($type == 'object')
+				{
 					$value_object = $this -> CreateArrayProperties($prop -> getValue($obj), array());
+				}
+				else if(is_array($prop_value) && !empty($prop_value))
+				{
+					$value_object = $this -> CreateArrayObject($prop_value, $fields, $key, $optionsMethods, $includeObjectVars);
+				}
 				else
+				{
 					$value_object = $prop -> getValue($obj);
+				}
 				
 				$array_json[$prop -> getName()] = $value_object;
+				
 			}
 			
-			if(is_array($optionsMethods) && count($optionsMethods) > 0)
-			{
-				foreach($optionsMethods as $option)
-				{
-					$method = $option['method'];
-					$key = $option['key'];
-					$values = $option['values'];
-					$method_to_invoke = $reflection -> getMethod($method);
-					$method_to_invoke -> invokeArgs($obj, $values);
-				}
-			}
+			// if(is_array($optionsMethods) && count($optionsMethods) > 0)
+			// {
+			// 	foreach($optionsMethods as $option)
+			// 	{
+			// 		$method = $option['method'];
+			// 		$key = $option['key'];
+			// 		$values = $option['values'];
+			// 		$method_to_invoke = $reflection -> getMethod($method);
+			// 		$method_to_invoke -> invokeArgs($obj, $values);
+			// 	}
+			// }
 		}
 		
 		return $array_json;
